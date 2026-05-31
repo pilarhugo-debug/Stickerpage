@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>sticker sheet maker ✿</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Fredoka+One&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --pk0:#fff0f7;--pk1:#fce4ec;--pk2:#f8bbd0;--pk3:#f48fb1;
+  --pk4:#e91e8c;--pk5:#c2185b;--pk6:#880e4f;
+}
+body{font-family:'Nunito',sans-serif;background:#fce4ec;min-height:100vh;color:#5c1a3a;overflow:hidden}
+h1{font-family:'Fredoka One',cursive;font-size:clamp(1.4rem,3vw,2.2rem);color:var(--pk5);text-align:center;padding:1rem 1rem 0.2rem;line-height:1}
+.subtitle{text-align:center;color:var(--pk4);font-size:12px;font-weight:700;margin-bottom:.6rem}
+
+.app{display:grid;grid-template-columns:280px 1fr;height:calc(100vh - 68px)}
+
+/* PANEL */
+.panel{background:#fff8fb;border-right:2px solid var(--pk2);display:flex;flex-direction:column;gap:.7rem;overflow-y:auto;padding:.9rem;max-height:100%}
+.upload-zone{border:2px dashed var(--pk3);border-radius:16px;background:var(--pk0);padding:1.1rem .8rem;text-align:center;cursor:pointer;position:relative;flex-shrink:0;transition:border-color .2s}
+.upload-zone:hover,.upload-zone.drag-over{border-color:var(--pk4);background:#fff0f7}
+.upload-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.upload-zone .ico{font-size:1.6rem;display:block;margin-bottom:.2rem}
+.upload-zone h3{font-size:13px;font-weight:800;color:var(--pk5)}
+.upload-zone p{font-size:10px;color:var(--pk3);font-weight:600;margin-top:.15rem}
+.sec{font-size:10px;font-weight:800;color:var(--pk4);text-transform:uppercase;letter-spacing:.8px;margin-bottom:.2rem}
+.field{display:flex;flex-direction:column;gap:2px}
+.field label{font-size:10px;font-weight:800;color:var(--pk4);text-transform:uppercase;letter-spacing:.6px}
+.field select{appearance:none;background:var(--pk0);border:1.5px solid var(--pk2);border-radius:50px;padding:6px 12px;font-family:'Nunito',sans-serif;font-weight:700;font-size:12px;color:var(--pk5);outline:none;width:100%}
+.field select:focus{border-color:var(--pk4)}
+.toggle-row{display:flex;align-items:center;gap:8px}
+.toggle-row .lbl{font-size:12px;font-weight:700;color:var(--pk5);cursor:pointer}
+.toggle{position:relative;width:36px;height:20px;flex-shrink:0}
+.toggle input{opacity:0;width:0;height:0;position:absolute}
+.tslider{position:absolute;inset:0;background:var(--pk2);border-radius:50px;cursor:pointer;transition:background .2s}
+.tslider::before{content:'';position:absolute;width:14px;height:14px;left:3px;top:3px;background:#fff;border-radius:50%;transition:transform .2s}
+.toggle input:checked+.tslider{background:var(--pk4)}
+.toggle input:checked+.tslider::before{transform:translateX(16px)}
+
+/* thumb list */
+.thumb-section{flex:1;overflow-y:auto;min-height:0}
+.thumb-list{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+.thumb{position:relative;background:#fff;border-radius:10px;border:1.5px solid var(--pk2);overflow:hidden;aspect-ratio:1;cursor:grab;transition:transform .12s,border-color .15s}
+.thumb:hover{border-color:var(--pk4);transform:scale(1.05)}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block;pointer-events:none}
+.thumb .del{position:absolute;top:3px;right:3px;background:var(--pk4);color:#fff;border:none;border-radius:50%;width:17px;height:17px;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .15s;font-weight:900}
+.thumb:hover .del{opacity:1}
+.thumb .hd{position:absolute;bottom:3px;left:3px;background:#9c27b0cc;color:#fff;font-size:8px;font-weight:800;padding:1px 5px;border-radius:50px}
+.empty-thumbs{text-align:center;padding:1rem .5rem;color:var(--pk3);font-size:12px;font-weight:600;grid-column:1/-1}
+
+.btns{display:flex;flex-direction:column;gap:.5rem;flex-shrink:0}
+.gen-btn{background:var(--pk4);color:#fff;border:none;border-radius:50px;padding:11px 1rem;font-family:'Fredoka One',cursive;font-size:16px;cursor:pointer;transition:transform .1s,background .2s;letter-spacing:.5px;width:100%}
+.gen-btn:hover{background:var(--pk5);transform:translateY(-1px)}
+.gen-btn:active{transform:scale(.98)}
+.gen-btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.sec-btn{background:var(--pk0);color:var(--pk5);border:1.5px solid var(--pk2);border-radius:50px;padding:7px 1rem;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer;transition:border-color .15s;width:100%}
+.sec-btn:hover{border-color:var(--pk4)}
+.prog-wrap{background:var(--pk1);border-radius:50px;overflow:hidden;height:8px;display:none}
+.prog-bar{height:100%;background:linear-gradient(90deg,var(--pk3),var(--pk4));border-radius:50px;transition:width .3s;width:0}
+.prog-lbl{font-size:10px;font-weight:700;color:var(--pk4);text-align:center;display:none;margin-top:3px}
+
+/* PREVIEW PANEL */
+.preview-panel{background:#ddc8d8;display:flex;flex-direction:column;overflow:hidden}
+.preview-toolbar{background:#fff8fb;border-bottom:1.5px solid var(--pk2);padding:.5rem .9rem;display:flex;align-items:center;gap:.6rem;flex-wrap:wrap}
+.preview-toolbar .label{font-size:11px;font-weight:800;color:var(--pk4);text-transform:uppercase;letter-spacing:.7px}
+.tb-btn{background:var(--pk0);border:1.5px solid var(--pk2);border-radius:50px;padding:4px 12px;font-family:'Nunito',sans-serif;font-size:11px;font-weight:700;color:var(--pk5);cursor:pointer;transition:border-color .15s;white-space:nowrap}
+.tb-btn:hover{border-color:var(--pk4)}
+.tb-btn.active{background:var(--pk4);color:#fff;border-color:var(--pk4)}
+.page-nav{display:flex;align-items:center;gap:5px;margin-left:auto}
+.page-nav button{background:var(--pk0);border:1.5px solid var(--pk2);border-radius:50%;width:26px;height:26px;font-size:14px;cursor:pointer;font-weight:900;color:var(--pk5);display:flex;align-items:center;justify-content:center}
+.page-nav button:hover{border-color:var(--pk4)}
+.page-nav button:disabled{opacity:.3;cursor:not-allowed}
+.page-info{font-size:11px;font-weight:800;color:var(--pk5);min-width:65px;text-align:center}
+.hint{font-size:10px;color:var(--pk3);font-weight:600}
+
+.preview-scroll{flex:1;overflow:auto;display:flex;align-items:flex-start;justify-content:center;padding:1.5rem}
+
+/* Page canvas wrapper */
+.page-wrap{position:relative;background:#fff;box-shadow:0 4px 28px #00000025;border-radius:3px;flex-shrink:0}
+
+/* Sticker elements on page */
+.sticker-el{position:absolute;cursor:move;user-select:none;touch-action:none}
+.sticker-el img{width:100%;height:100%;display:block;pointer-events:none;border-radius:inherit}
+.sticker-el.selected{outline:2px solid var(--pk4);outline-offset:1px}
+.sticker-el .resize-handle{position:absolute;width:10px;height:10px;background:var(--pk4);border:2px solid #fff;border-radius:50%;cursor:nwse-resize;display:none;z-index:10}
+.sticker-el.selected .resize-handle{display:block}
+.sticker-el .resize-handle.br{bottom:-5px;right:-5px}
+.sticker-el .resize-handle.bl{bottom:-5px;left:-5px;cursor:nesw-resize}
+.sticker-el .resize-handle.tr{top:-5px;right:-5px;cursor:nesw-resize}
+.sticker-el .resize-handle.tl{top:-5px;left:-5px;cursor:nwse-resize}
+.sticker-el .del-btn{position:absolute;top:-8px;right:-8px;background:var(--pk4);color:#fff;border:2px solid #fff;border-radius:50%;width:18px;height:18px;font-size:10px;cursor:pointer;display:none;align-items:center;justify-content:center;font-weight:900;z-index:10;line-height:1}
+.sticker-el.selected .del-btn{display:flex}
+.sticker-el .shape-btn{position:absolute;top:-8px;left:-8px;background:#9c27b0;color:#fff;border:2px solid #fff;border-radius:50%;width:18px;height:18px;font-size:9px;cursor:pointer;display:none;align-items:center;justify-content:center;font-weight:900;z-index:10;line-height:1}
+.sticker-el.selected .shape-btn{display:flex}
+
+.page-bg-canvas{position:absolute;inset:0;pointer-events:none;border-radius:3px}
+
+.toast{position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%) translateY(6px);background:var(--pk5);color:#fff;padding:8px 20px;border-radius:50px;font-size:12px;font-weight:700;opacity:0;transition:opacity .3s,transform .3s;pointer-events:none;z-index:9999;white-space:nowrap}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+<h1>✿ sticker sheet maker ✿</h1>
+<p class="subtitle">sube imágenes • acomoda los stickers libremente • descarga tu hoja para imprimir ♡</p>
+
+<div class="app">
+<!-- LEFT PANEL -->
+<div class="panel">
+  <div class="upload-zone" id="uploadZone">
+    <input type="file" id="fileInput" accept="image/*" multiple/>
+    <span class="ico">🌸</span>
+    <h3>subir imágenes</h3>
+    <p>arrastra o click • múltiples</p>
+  </div>
+
+  <div>
+    <div class="sec">opciones de página</div>
+    <div style="display:flex;flex-direction:column;gap:.5rem">
+      <div class="field">
+        <label>tamaño</label>
+        <select id="pageSize">
+          <option value="a4">A4 (21 × 29.7 cm)</option>
+          <option value="letter">Carta (21.6 × 27.9 cm)</option>
+          <option value="a5">A5 (14.8 × 21 cm)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>fondo</label>
+        <select id="bgColor">
+          <option value="white">blanco</option>
+          <option value="pink">rosita ♡</option>
+          <option value="cream">crema</option>
+        </select>
+      </div>
+      <div class="toggle-row">
+        <label class="toggle"><input type="checkbox" id="upscaleToggle" checked/><span class="tslider"></span></label>
+        <label class="lbl" for="upscaleToggle">✦ mejorar calidad</label>
+      </div>
+    </div>
+  </div>
+
+  <div class="thumb-section">
+    <div class="sec">imágenes — click para agregar a la página</div>
+    <div class="thumb-list" id="thumbList">
+      <div class="empty-thumbs">sube imágenes 🌷</div>
+    </div>
+  </div>
+
+  <div class="btns">
+    <button class="sec-btn" onclick="addNewPage()">+ agregar página</button>
+    <button class="gen-btn" id="genBtn" onclick="generatePDF()">🌸 descargar PDF</button>
+    <div class="prog-wrap" id="progWrap"><div class="prog-bar" id="progBar"></div></div>
+    <p class="prog-lbl" id="progLbl"></p>
+  </div>
+</div>
+
+<!-- PREVIEW -->
+<div class="preview-panel">
+  <div class="preview-toolbar">
+    <span class="label">vista previa</span>
+    <span class="hint">arrastra • esquinas para redimensionar • 🔮 para cambiar forma</span>
+    <div class="page-nav">
+      <button id="prevPage" onclick="changePage(-1)" disabled>‹</button>
+      <span class="page-info" id="pageInfo">pág 1 / 1</span>
+      <button id="nextPage" onclick="changePage(1)" disabled>›</button>
+    </div>
+  </div>
+  <div class="preview-scroll" id="previewScroll">
+    <div id="pageContainer"></div>
+  </div>
+</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const { jsPDF } = window.jspdf;
+
+const PAGE_SIZES = { a4:[210,297], letter:[215.9,279.4], a5:[148,210] };
+const BG_COLORS = { white:'#ffffff', pink:'#fce4ec', cream:'#fffde7' };
+const SHAPES = ['none','rounded','circle'];
+const SHAPE_ICONS = {'none':'▢','rounded':'▣','circle':'◯'};
+
+let images = []; // {id, dataUrl, processedUrl, upscaled, naturalW, naturalH}
+let pages = [[]]; // pages[p] = array of sticker objects
+let currentPage = 0;
+let SCALE = 2.5; // px per mm
+
+// Each sticker: {id, imgId, x, y, w, h, shape}
+// x,y,w,h in mm
+
+function getPageSize(){ return PAGE_SIZES[document.getElementById('pageSize').value] }
+
+// ---- Upload ----
+const zone = document.getElementById('uploadZone');
+const fileInput = document.getElementById('fileInput');
+zone.addEventListener('dragover', e=>{e.preventDefault();zone.classList.add('drag-over')});
+zone.addEventListener('dragleave', ()=>zone.classList.remove('drag-over'));
+zone.addEventListener('drop', e=>{e.preventDefault();zone.classList.remove('drag-over');handleFiles([...e.dataTransfer.files])});
+fileInput.addEventListener('change', ()=>{ handleFiles([...fileInput.files]); fileInput.value=''; });
+
+document.getElementById('bgColor').addEventListener('change', renderCurrentPage);
+document.getElementById('pageSize').addEventListener('change', ()=>{ recalcScale(); renderCurrentPage(); });
+
+function handleFiles(files){
+  const imgs = files.filter(f=>f.type.startsWith('image/'));
+  if(!imgs.length){ showToast('solo imágenes ♡'); return; }
+  let done=0;
+  imgs.forEach(file=>{
+    const reader = new FileReader();
+    reader.onload = e=>{
+      const img = new Image();
+      img.onload = ()=>{
+        images.push({
+          id: Date.now()+Math.random(),
+          dataUrl: e.target.result,
+          processedUrls: {},
+          upscaled: false,
+          naturalW: img.naturalWidth,
+          naturalH: img.naturalHeight
+        });
+        done++;
+        if(done===imgs.length){ renderThumbs(); showToast('¡imágenes cargadas! haz click para agregarlas ✿'); }
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+// ---- Thumbnails ----
+function renderThumbs(){
+  const list = document.getElementById('thumbList');
+  if(!images.length){ list.innerHTML='<div class="empty-thumbs">sube imágenes 🌷</div>'; return; }
+  list.innerHTML = images.map((img,i)=>`
+    <div class="thumb" onclick="addStickerToPage('${img.id}')" title="click para agregar a la página">
+      <img src="${img.dataUrl}" alt="sticker"/>
+      ${img.upscaled?'<span class="hd">✦HD</span>':''}
+      <button class="del" onclick="removeImage('${img.id}',event)">✕</button>
+    </div>
+  `).join('');
+}
+
+function removeImage(id, e){
+  e.stopPropagation();
+  images = images.filter(i=>i.id!=id);
+  pages = pages.map(p=>p.filter(s=>s.imgId!=id));
+  renderThumbs();
+  renderCurrentPage();
+}
+
+// ---- Add sticker to page ----
+function addStickerToPage(imgId){
+  const img = images.find(i=>i.id==imgId);
+  if(!img){ return; }
+  const [pgW, pgH] = getPageSize();
+  // Natural aspect ratio, default width ~40mm, keep aspect
+  const aspect = img.naturalW / img.naturalH;
+  const defaultW = Math.min(50, pgW * 0.28);
+  const defaultH = defaultW / aspect;
+  // Place near top-left with slight offset based on count
+  const offset = (pages[currentPage].length % 8) * 8;
+  const sticker = {
+    id: Date.now()+Math.random(),
+    imgId,
+    x: 10 + offset,
+    y: 10 + offset,
+    w: defaultW,
+    h: defaultH,
+    shape: 'none'
+  };
+  pages[currentPage].push(sticker);
+  renderCurrentPage();
+  // select newly added
+  setTimeout(()=>selectSticker(sticker.id), 50);
+}
+
+// ---- Scale ----
+function recalcScale(){
+  const scroll = document.getElementById('previewScroll');
+  const [pgW, pgH] = getPageSize();
+  const availW = scroll.clientWidth - 60;
+  const availH = scroll.clientHeight - 60;
+  SCALE = Math.min(availW/pgW, availH/pgH, 3.2);
+  SCALE = Math.max(SCALE, 1.2);
+}
+
+// ---- Render page ----
+let selectedId = null;
+function selectSticker(id){
+  selectedId = id;
+  document.querySelectorAll('.sticker-el').forEach(el=>{
+    el.classList.toggle('selected', el.dataset.sid==id);
+  });
+}
+
+function renderCurrentPage(){
+  recalcScale();
+  const [pgW, pgH] = getPageSize();
+  const bgColor = document.getElementById('bgColor').value;
+  const cW = Math.round(pgW*SCALE);
+  const cH = Math.round(pgH*SCALE);
+
+  const container = document.getElementById('pageContainer');
+  container.style.cssText = `position:relative;width:${cW}px;height:${cH}px;background:${BG_COLORS[bgColor]};box-shadow:0 4px 28px #00000025;border-radius:3px;overflow:visible`;
+
+  // footer canvas
+  let footerCanvas = container.querySelector('.footer-canvas');
+  if(!footerCanvas){
+    footerCanvas = document.createElement('canvas');
+    footerCanvas.className='footer-canvas';
+    footerCanvas.style.cssText='position:absolute;inset:0;pointer-events:none;z-index:0';
+    container.appendChild(footerCanvas);
+  }
+  footerCanvas.width=cW; footerCanvas.height=cH;
+  const ctx=footerCanvas.getContext('2d');
+  ctx.clearRect(0,0,cW,cH);
+  ctx.font=`${Math.round(6*SCALE*0.38)}px Nunito,sans-serif`;
+  ctx.fillStyle='#f48fb1';
+  ctx.textAlign='center';
+  ctx.fillText(`sticker sheet  •  pág ${currentPage+1} / ${pages.length}`, cW/2, cH-5);
+
+  // Remove old sticker els
+  container.querySelectorAll('.sticker-el').forEach(el=>el.remove());
+
+  // Click on page background → deselect
+  container.onclick = e=>{ if(e.target===container||e.target===footerCanvas){ selectSticker(null); } };
+
+  // Render stickers
+  const stickers = pages[currentPage] || [];
+  stickers.forEach(s=>{ renderStickerEl(s, container, pgW, pgH); });
+
+  updatePageNav();
+}
+
+function renderStickerEl(s, container, pgW, pgH){
+  const img = images.find(i=>i.id==s.imgId);
+  if(!img) return;
+
+  const el = document.createElement('div');
+  el.className = 'sticker-el' + (selectedId==s.id?' selected':'');
+  el.dataset.sid = s.id;
+
+  const px=s.x*SCALE, py=s.y*SCALE, pw=s.w*SCALE, ph=s.h*SCALE;
+  el.style.cssText = `left:${px}px;top:${py}px;width:${pw}px;height:${ph}px;z-index:${pages[currentPage].indexOf(s)+1}`;
+  applyShapeStyle(el, s.shape);
+
+  const imgEl = document.createElement('img');
+  imgEl.src = img.dataUrl;
+  imgEl.style.borderRadius = 'inherit';
+  el.appendChild(imgEl);
+
+  // Shape toggle button
+  const shapeBtn = document.createElement('button');
+  shapeBtn.className='shape-btn';
+  shapeBtn.textContent = SHAPE_ICONS[s.shape]||'▢';
+  shapeBtn.title='cambiar forma';
+  shapeBtn.onclick = e=>{ e.stopPropagation(); cycleShape(s.id); };
+  el.appendChild(shapeBtn);
+
+  // Delete button
+  const delBtn = document.createElement('button');
+  delBtn.className='del-btn';
+  delBtn.textContent='✕';
+  delBtn.onclick = e=>{ e.stopPropagation(); removeStickerFromPage(s.id); };
+  el.appendChild(delBtn);
+
+  // Resize handles
+  ['tl','tr','bl','br'].forEach(pos=>{
+    const h = document.createElement('div');
+    h.className=`resize-handle ${pos}`;
+    h.addEventListener('mousedown', e=>startResize(e,s,pos,pgW,pgH));
+    el.appendChild(h);
+  });
+
+  // Drag to move
+  el.addEventListener('mousedown', e=>{ if(e.target===el||e.target===imgEl) startDrag(e,s,pgW,pgH); });
+  el.addEventListener('click', e=>{ e.stopPropagation(); selectSticker(s.id); });
+
+  container.appendChild(el);
+}
+
+function applyShapeStyle(el, shape){
+  if(shape==='circle') el.style.borderRadius='50%';
+  else if(shape==='rounded') el.style.borderRadius='18%';
+  else el.style.borderRadius='4px';
+  el.style.overflow='hidden';
+}
+
+function cycleShape(sid){
+  const s = findSticker(sid);
+  if(!s) return;
+  const idx = SHAPES.indexOf(s.shape);
+  s.shape = SHAPES[(idx+1)%SHAPES.length];
+  renderCurrentPage();
+  setTimeout(()=>selectSticker(sid),10);
+}
+
+function removeStickerFromPage(sid){
+  pages[currentPage] = pages[currentPage].filter(s=>s.id!=sid);
+  if(selectedId==sid) selectedId=null;
+  renderCurrentPage();
+}
+
+function findSticker(sid){
+  for(const p of pages) for(const s of p) if(s.id==sid) return s;
+  return null;
+}
+
+// ---- Drag to move ----
+function startDrag(e, s, pgW, pgH){
+  e.preventDefault();
+  e.stopPropagation();
+  selectSticker(s.id);
+  const startX=e.clientX, startY=e.clientY;
+  const origX=s.x, origY=s.y;
+  const container=document.getElementById('pageContainer');
+
+  function onMove(e){
+    const dx=(e.clientX-startX)/SCALE;
+    const dy=(e.clientY-startY)/SCALE;
+    s.x = Math.max(0, Math.min(pgW-s.w, origX+dx));
+    s.y = Math.max(0, Math.min(pgH-s.h, origY+dy));
+    const el=container.querySelector(`[data-sid="${s.id}"]`);
+    if(el){ el.style.left=(s.x*SCALE)+'px'; el.style.top=(s.y*SCALE)+'px'; }
+  }
+  function onUp(){ document.removeEventListener('mousemove',onMove); document.removeEventListener('mouseup',onUp); }
+  document.addEventListener('mousemove',onMove);
+  document.addEventListener('mouseup',onUp);
+}
+
+// ---- Resize ----
+function startResize(e, s, handle, pgW, pgH){
+  e.preventDefault();
+  e.stopPropagation();
+  selectSticker(s.id);
+  const startX=e.clientX, startY=e.clientY;
+  const origX=s.x, origY=s.y, origW=s.w, origH=s.h;
+  const img=images.find(i=>i.id==s.imgId);
+  const aspect = img ? img.naturalW/img.naturalH : 1;
+  const container=document.getElementById('pageContainer');
+  const minSz=8;
+
+  function onMove(e){
+    const dx=(e.clientX-startX)/SCALE;
+    const dy=(e.clientY-startY)/SCALE;
+    let newX=s.x, newY=s.y, newW=s.w, newH=s.h;
+
+    if(handle==='br'){
+      newW=Math.max(minSz,origW+dx);
+      newH=newW/aspect;
+    } else if(handle==='bl'){
+      newW=Math.max(minSz,origW-dx);
+      newH=newW/aspect;
+      newX=origX+origW-newW;
+    } else if(handle==='tr'){
+      newW=Math.max(minSz,origW+dx);
+      newH=newW/aspect;
+      newY=origY+origH-newH;
+    } else if(handle==='tl'){
+      newW=Math.max(minSz,origW-dx);
+      newH=newW/aspect;
+      newX=origX+origW-newW;
+      newY=origY+origH-newH;
+    }
+    // clamp
+    newX=Math.max(0,newX); newY=Math.max(0,newY);
+    if(newX+newW>pgW) newW=pgW-newX;
+    if(newY+newH>pgH) newH=pgY-newY;
+    s.x=newX; s.y=newY; s.w=newW; s.h=newH;
+
+    const el=container.querySelector(`[data-sid="${s.id}"]`);
+    if(el){
+      el.style.left=(s.x*SCALE)+'px';
+      el.style.top=(s.y*SCALE)+'px';
+      el.style.width=(s.w*SCALE)+'px';
+      el.style.height=(s.h*SCALE)+'px';
+    }
+  }
+  function onUp(){ document.removeEventListener('mousemove',onMove); document.removeEventListener('mouseup',onUp); }
+  document.addEventListener('mousemove',onMove);
+  document.addEventListener('mouseup',onUp);
+}
+
+// ---- Page nav ----
+function updatePageNav(){
+  document.getElementById('pageInfo').textContent=`pág ${currentPage+1} / ${pages.length}`;
+  document.getElementById('prevPage').disabled=currentPage<=0;
+  document.getElementById('nextPage').disabled=currentPage>=pages.length-1;
+}
+function changePage(dir){
+  currentPage+=dir;
+  if(currentPage<0)currentPage=0;
+  if(currentPage>=pages.length)currentPage=pages.length-1;
+  selectedId=null;
+  renderCurrentPage();
+}
+function addNewPage(){
+  pages.push([]);
+  currentPage=pages.length-1;
+  selectedId=null;
+  renderCurrentPage();
+  showToast(`página ${currentPage+1} agregada ✿`);
+}
+
+// ---- Upscale ----
+function needsUpscale(img){ return img.naturalW<500||img.naturalH<500; }
+function upscaleImage(dataUrl, scale=3){
+  return new Promise(resolve=>{
+    const img=new Image();
+    img.onload=()=>{
+      const c=document.createElement('canvas');
+      c.width=img.naturalWidth*scale; c.height=img.naturalHeight*scale;
+      const ctx=c.getContext('2d');
+      ctx.imageSmoothingEnabled=true; ctx.imageSmoothingQuality='high';
+      ctx.drawImage(img,0,0,c.width,c.height);
+      resolve(c.toDataURL('image/png',1));
+    };
+    img.src=dataUrl;
+  });
+}
+
+// Process image for PDF: optionally upscale, then clip to shape
+async function getProcessedUrl(imgObj, shape, doUpscale){
+  const key=`${shape}_${doUpscale}`;
+  if(imgObj.processedUrls[key]) return imgObj.processedUrls[key];
+  let dataUrl=imgObj.dataUrl;
+  if(doUpscale && needsUpscale(imgObj)){
+    dataUrl=await upscaleImage(dataUrl,3);
+    imgObj.upscaled=true;
+  }
+  const result=await applyShapeToImage(dataUrl, shape);
+  imgObj.processedUrls[key]=result;
+  return result;
+}
+
+function applyShapeToImage(dataUrl, shape){
+  return new Promise(resolve=>{
+    const img=new Image();
+    img.onload=()=>{
+      const size=Math.max(img.naturalWidth,img.naturalHeight);
+      const c=document.createElement('canvas');
+      c.width=img.naturalWidth; c.height=img.naturalHeight;
+      const ctx=c.getContext('2d');
+      ctx.clearRect(0,0,c.width,c.height);
+      const w=img.naturalWidth,h=img.naturalHeight;
+      ctx.beginPath();
+      if(shape==='circle'){
+        ctx.arc(w/2,h/2,Math.min(w,h)/2,0,Math.PI*2);
+      } else if(shape==='rounded'){
+        const r=Math.min(w,h)*0.12;
+        ctx.moveTo(r,0);ctx.lineTo(w-r,0);ctx.quadraticCurveTo(w,0,w,r);
+        ctx.lineTo(w,h-r);ctx.quadraticCurveTo(w,h,w-r,h);
+        ctx.lineTo(r,h);ctx.quadraticCurveTo(0,h,0,h-r);
+        ctx.lineTo(0,r);ctx.quadraticCurveTo(0,0,r,0);
+      } else {
+        ctx.rect(0,0,w,h);
+      }
+      ctx.closePath();ctx.clip();
+      ctx.drawImage(img,0,0);
+      resolve(c.toDataURL('image/png',1));
+    };
+    img.src=dataUrl;
+  });
+}
+
+function setProgress(pct,lbl){
+  document.getElementById('progWrap').style.display='block';
+  document.getElementById('progLbl').style.display='block';
+  document.getElementById('progBar').style.width=pct+'%';
+  document.getElementById('progLbl').textContent=lbl;
+}
+
+// ---- Generate PDF ----
+async function generatePDF(){
+  const allStickers = pages.flat();
+  if(!allStickers.length){ showToast('agrega stickers a las páginas primero ♡'); return; }
+
+  const btn=document.getElementById('genBtn');
+  btn.disabled=true; btn.textContent='⏳ generando...';
+
+  const pageSizeKey=document.getElementById('pageSize').value;
+  const bgColor=document.getElementById('bgColor').value;
+  const doUpscale=document.getElementById('upscaleToggle').checked;
+  const [pgW,pgH]=PAGE_SIZES[pageSizeKey];
+
+  // Collect unique images needed
+  const uniqueImgIds=[...new Set(allStickers.map(s=>s.imgId))];
+  const processedMap={};
+
+  setProgress(5,'procesando imágenes...');
+  let done=0;
+  for(const imgId of uniqueImgIds){
+    const imgObj=images.find(i=>i.id==imgId);
+    if(!imgObj) continue;
+    // Process each shape variant needed
+    const shapes=[...new Set(allStickers.filter(s=>s.imgId==imgId).map(s=>s.shape))];
+    for(const shape of shapes){
+      setProgress(5+(done/(uniqueImgIds.length))*50,`procesando imagen ${done+1} / ${uniqueImgIds.length}...`);
+      processedMap[`${imgId}_${shape}`]=await getProcessedUrl(imgObj,shape,doUpscale);
+    }
+    done++;
+  }
+  renderThumbs();
+
+  setProgress(55,'construyendo PDF...');
+  const fmt=pageSizeKey==='letter'?[pgW,pgH]:pageSizeKey;
+  const doc=new jsPDF({orientation:'portrait',unit:'mm',format:fmt});
+
+  for(let p=0;p<pages.length;p++){
+    if(p>0) doc.addPage();
+    doc.setFillColor(BG_COLORS[bgColor]);
+    doc.rect(0,0,pgW,pgH,'F');
+
+    const stickers=pages[p];
+    for(const s of stickers){
+      const url=processedMap[`${s.imgId}_${s.shape}`];
+      if(!url) continue;
+      try{ doc.addImage(url,'PNG',s.x,s.y,s.w,s.h,'','FAST'); }
+      catch(e){}
+    }
+    // footer
+    doc.setFont('helvetica','normal');
+    doc.setFontSize(6);
+    doc.setTextColor(220,160,185);
+    doc.text(`sticker sheet  •  pag ${p+1} / ${pages.length}`,pgW/2,pgH-3,{align:'center'});
+    setProgress(55+((p+1)/pages.length)*42,`página ${p+1} de ${pages.length}...`);
+  }
+
+  setProgress(100,'¡descargando! ✿');
+  setTimeout(()=>{
+    doc.save('sticker-sheet.pdf');
+    btn.disabled=false; btn.innerHTML='🌸 descargar PDF';
+    document.getElementById('progWrap').style.display='none';
+    document.getElementById('progLbl').style.display='none';
+    showToast('¡PDF listo! ✿ feliz impresión ♡');
+  },300);
+}
+
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),3000);
+}
+
+// Init
+recalcScale();
+renderCurrentPage();
+window.addEventListener('resize',()=>{ recalcScale(); renderCurrentPage(); });
+</script>
+</body>
+</html>
